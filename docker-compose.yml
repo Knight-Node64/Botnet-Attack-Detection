@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  botnet-detector-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: botnet_detector_service
+    ports:
+      - "8000:8000"
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

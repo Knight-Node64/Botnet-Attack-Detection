@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ML artifacts (too large for git)
+dataset/*.csv
+mlruns/
+
+# DVC
+.dvc/
+.dvcignore
+*.dvc
+
+# Test cache
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# One-time scripts
+create_repo.ps1
+render_interface.ps1
+
+# Scratch/temp
+process/

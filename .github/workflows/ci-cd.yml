@@ -1,0 +1,29 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with: { python-version: '3.11' }
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run tests
+      run: pytest -v tests/
+
+    - name: Build Docker image
+      run: docker build -t botnet-detector:latest .
+
+    - name: Verify container starts
+      run: |
+        docker run -d --name app -p 8000:8000 botnet-detector:latest
+        sleep 5 && curl -f http://localhost:8000/health
