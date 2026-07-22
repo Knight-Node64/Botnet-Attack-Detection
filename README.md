@@ -2,7 +2,7 @@
 
 > End-to-end machine learning pipeline for detecting botnet attacks in IoT network traffic using the **UNSW-NB15** dataset. Follows a structured M1–M5 MLOps milestone framework.
 
-[![CI/CD](https://github.com/Knight-Node64/Botnet-Detection/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Knight-Node64/Botnet-Detection/actions)
+[![CI/CD](https://github.com/Knight-Node64/Botnet-Attack-Detection/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Knight-Node64/Botnet-Attack-Detection/actions)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green)
 
