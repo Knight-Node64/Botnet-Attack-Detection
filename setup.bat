@@ -32,10 +32,9 @@ echo   [5]  M2 ^| Start API Locally
 echo   [6]  M2 ^| Docker Build + Run
 echo   [7]  M4 ^| Kubernetes Deploy
 echo   [8]  M5 ^| Smoke Test + Monitor
-echo   [9]  M1 ^| MLflow Experiment Tracking
-echo  [10]     ^| Open API Docs in Browser
-echo  [11]     ^| Check GitHub Actions Status
-echo  [12]     ^| Check Prerequisites
+echo   [9]     ^| Open API Docs in Browser
+echo  [10]     ^| Check GitHub Actions Status
+echo  [11]     ^| Check Prerequisites
 echo   --------------------------------------------------------
 echo   [0]  Exit
 echo.
@@ -50,10 +49,9 @@ if "%CHOICE%"=="5"  goto START_API
 if "%CHOICE%"=="6"  goto DOCKER_RUN
 if "%CHOICE%"=="7"  goto K8S_DEPLOY
 if "%CHOICE%"=="8"  goto SMOKE_MONITOR
-if "%CHOICE%"=="9"  goto MLFLOW_TRAIN
-if "%CHOICE%"=="10" goto OPEN_BROWSER
-if "%CHOICE%"=="11" goto GITHUB_ACTIONS
-if "%CHOICE%"=="12" goto CHECK_PREREQS
+if "%CHOICE%"=="9"  goto OPEN_BROWSER
+if "%CHOICE%"=="10" goto GITHUB_ACTIONS
+if "%CHOICE%"=="11" goto CHECK_PREREQS
 if "%CHOICE%"=="0"  goto EXIT
 goto MAIN_MENU
 
@@ -373,40 +371,6 @@ if errorlevel 1 (call :WARN "Monitor run encountered issues")
 exit /b 0
 
 :: ==============================================================================
-:MLFLOW_TRAIN
-call :SECTION "M1 -- MLflow Experiment Tracking"
-
-python -c "import mlflow" >nul 2>&1
-if errorlevel 1 (
-    call :STEP "Installing MLflow..."
-    python -m pip install mlflow -q
-)
-if not exist "%PROJECT_DIR%dataset\UNSW_NB15_training-set.csv" (
-    call :ERROR "Dataset not found in dataset\ folder!"
-    pause
-    goto MAIN_MENU
-)
-
-call :STEP "Running training with MLflow logging..."
-python "%PROJECT_DIR%train_with_mlflow.py"
-if errorlevel 1 (
-    call :ERROR "MLflow training failed!"
-    pause
-    goto MAIN_MENU
-)
-call :SUCCESS "MLflow run completed!"
-
-echo.
-set "LAUNCH_MLFLOW="
-set /p "LAUNCH_MLFLOW=  Launch MLflow UI? [y/n]: "
-if /i "%LAUNCH_MLFLOW%"=="y" (
-    call :STEP "Starting MLflow UI at http://localhost:5000..."
-    start "MLflow UI" cmd /k "mlflow ui --host 0.0.0.0 --port 5000"
-    timeout /t 2 /nobreak >nul
-    start http://localhost:5000
-)
-pause
-goto MAIN_MENU
 
 :: ==============================================================================
 :OPEN_BROWSER

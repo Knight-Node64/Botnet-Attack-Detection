@@ -4,10 +4,6 @@ pandas>=2.0
 scikit-learn>=1.5
 xgboost>=2.0
 joblib>=1.4
-
-# Experiment tracking
-mlflow>=2.10
-
 # API
 fastapi>=0.110
 uvicorn>=0.29

@@ -95,7 +95,6 @@ python smoke_test.py --monitor   # live batch monitoring
 ```
 Botnet-Detection/
 ├── train_model.py          # M1 – Train & save model
-├── train_with_mlflow.py    # M1 – MLflow experiment tracking variant
 ├── app.py                  # M2 – FastAPI REST service
 ├── smoke_test.py           # M4/M5 – Smoke test & monitoring
 ├── requirements.txt        # Pinned dependencies
@@ -144,7 +143,7 @@ Send a network flow object, receive a classification:
 
 | # | Milestone | Files |
 |---|-----------|-------|
-| M1 | Model Training & Experiment Tracking | `train_model.py`, `train_with_mlflow.py` |
+| M1 | Model Training & Feature Engineering | `train_model.py` |
 | M2 | Model Packaging & REST API | `app.py`, `Dockerfile` |
 | M3 | CI Pipeline (Build, Test, Image) | `tests/`, `.github/workflows/` |
 | M4 | CD Pipeline & Deployment | `docker-compose.yml`, `k8s/` |
