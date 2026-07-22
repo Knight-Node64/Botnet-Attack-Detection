@@ -8,6 +8,9 @@ import sys, time
 import numpy as np
 import requests
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 BASE = "http://127.0.0.1:8000"
 
 SAMPLE = {
@@ -21,19 +24,40 @@ SAMPLE = {
     "ct_ftp_cmd":0,"ct_flw_http_mthd":0,"ct_src_ltm":1,"ct_srv_dst":1,"is_sm_ips_ports":0,
 }
 
+def check_server():
+    try:
+        r = requests.get(f"{BASE}/health", timeout=3)
+        return r.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
 def smoke_test():
-    print(f"Smoke test → {BASE}")
+    if not check_server():
+        print(f"[ERROR] API server is not running on {BASE}")
+        print("        Start the API first via setup.bat (Option [5] or [6]) or run:")
+        print("        python -m uvicorn app:app --host 0.0.0.0 --port 8000")
+        sys.exit(1)
+
+    print(f"Smoke test -> {BASE}")
     r = requests.get(f"{BASE}/health", timeout=5)
     assert r.status_code == 200 and r.json()["model_loaded"], "Health check failed"
-    print("✓ /health")
+    print("[OK] /health")
     r = requests.post(f"{BASE}/predict", json=SAMPLE, timeout=5)
     assert r.status_code == 200, "Predict failed"
-    d = r.json(); print(f"✓ /predict  label={d['label']}  prob={d['attack_probability']}")
+    d = r.json()
+    print(f"[OK] /predict  label={d['label']}  prob={d['attack_probability']}")
     r = requests.get(f"{BASE}/metrics", timeout=5)
     assert r.status_code == 200, "Metrics failed"
-    print("✓ /metrics"); print("All smoke tests passed!")
+    print("[OK] /metrics")
+    print("All smoke tests passed!")
 
 def monitor(n=50):
+    if not check_server():
+        print(f"[ERROR] API server is not running on {BASE}")
+        print("        Start the API first via setup.bat (Option [5] or [6]) or run:")
+        print("        python -m uvicorn app:app --host 0.0.0.0 --port 8000")
+        sys.exit(1)
+
     import pandas as pd
     df   = pd.read_csv("dataset/UNSW_NB15_testing-set.csv").sample(n, random_state=42)
     lats, correct = [], 0

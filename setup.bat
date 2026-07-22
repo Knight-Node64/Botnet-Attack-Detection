@@ -66,11 +66,32 @@ echo.
 pause
 
 call :CHECK_PREREQS_SILENT
+if errorlevel 1 (call :ERROR "Prerequisites check failed!" & pause & goto MAIN_MENU)
+
 call :DO_INSTALL_DEPS
+if errorlevel 1 (call :ERROR "Dependency installation failed!" & pause & goto MAIN_MENU)
+
 call :DO_TRAIN_MODEL
+if errorlevel 1 (call :ERROR "Model training failed!" & pause & goto MAIN_MENU)
+
 call :DO_RUN_TESTS
-call :DO_DOCKER_BUILD_RUN
+if errorlevel 1 (call :ERROR "Test suite failed!" & pause & goto MAIN_MENU)
+
+:: Check if Docker daemon is actually running
+docker info >nul 2>&1
+if not errorlevel 1 (
+    call :DO_DOCKER_BUILD_RUN
+    if errorlevel 1 (call :ERROR "Docker deployment failed!" & pause & goto MAIN_MENU)
+) else (
+    call :WARN "Docker daemon is not running! Falling back to starting local FastAPI server..."
+    call :STEP "Starting API server locally on port %API_PORT%..."
+    start "FastAPI Local Server" cmd /k "python -m uvicorn app:app --host 0.0.0.0 --port %API_PORT%"
+    call :STEP "Waiting for local API server to be ready..."
+    timeout /t 4 /nobreak >nul
+)
+
 call :DO_SMOKE_TEST
+if errorlevel 1 (call :ERROR "Smoke testing failed!" & pause & goto MAIN_MENU)
 
 call :SUCCESS "Full MLOps Pipeline Complete!"
 echo.
@@ -158,7 +179,7 @@ if not exist "%PROJECT_DIR%models\botnet_detector.joblib" (
     call :DO_TRAIN_MODEL
 )
 call :STEP "Running all tests..."
-python -m pytest "%PROJECT_DIR%tests\" -v -W ignore::DeprecationWarning
+python -m pytest "%PROJECT_DIR%tests" -v -W ignore::DeprecationWarning
 if errorlevel 1 (
     call :ERROR "Tests FAILED! Check output above."
     exit /b 1
@@ -199,7 +220,12 @@ call :SECTION "M2/M4 -- Docker Build + Run"
 
 docker --version >nul 2>&1
 if errorlevel 1 (
-    call :ERROR "Docker not found! Install Docker Desktop from https://docker.com"
+    call :ERROR "Docker command not found! Install Docker Desktop from https://docker.com"
+    exit /b 1
+)
+docker info >nul 2>&1
+if errorlevel 1 (
+    call :ERROR "Docker daemon is not running! Please open Docker Desktop and start the engine."
     exit /b 1
 )
 for /f "tokens=*" %%v in ('docker --version 2^>^&1') do call :SUCCESS "Found: %%v"
@@ -209,7 +235,7 @@ docker stop botnet_detector_service >nul 2>&1
 docker rm   botnet_detector_service >nul 2>&1
 
 call :STEP "Building Docker image: %DOCKER_IMAGE%:latest"
-docker build -t %DOCKER_IMAGE%:latest "%PROJECT_DIR%"
+docker build -t %DOCKER_IMAGE%:latest .
 if errorlevel 1 (
     call :ERROR "Docker build failed!"
     exit /b 1
@@ -306,11 +332,36 @@ goto MAIN_MENU
 :DO_SMOKE_TEST
 call :SECTION "M5 -- Smoke Test + Live Monitoring"
 
+if not exist "%PROJECT_DIR%models\botnet_detector.joblib" (
+    call :WARN "Model not found -- running training first..."
+    call :DO_TRAIN_MODEL
+    if errorlevel 1 exit /b 1
+)
+
+call :DO_HEALTH_CHECK
+if errorlevel 1 (
+    call :WARN "API server is not healthy or running on %API_URL%."
+    call :STEP "Cleaning up stale server processes..."
+    taskkill /f /im uvicorn.exe >nul 2>&1
+    docker stop botnet_detector_service >nul 2>&1
+    docker rm   botnet_detector_service >nul 2>&1
+    
+    docker info >nul 2>&1
+    if not errorlevel 1 (
+        call :STEP "Rebuilding Docker container..."
+        call :DO_DOCKER_BUILD_RUN
+    ) else (
+        call :STEP "Starting local FastAPI server..."
+        start "FastAPI Local Server" cmd /k "python -m uvicorn app:app --host 0.0.0.0 --port %API_PORT%"
+        call :STEP "Waiting for API server to respond..."
+        timeout /t 5 /nobreak >nul
+    )
+)
+
 call :STEP "Running smoke test against %API_URL%..."
 python "%PROJECT_DIR%smoke_test.py"
 if errorlevel 1 (
-    call :ERROR "Smoke test FAILED! Is the API running?"
-    echo   Start API first with option [5] or [6]
+    call :ERROR "Smoke test FAILED!"
     exit /b 1
 )
 call :SUCCESS "Smoke test passed!"
@@ -492,10 +543,11 @@ if exist "%PROJECT_DIR%models\botnet_detector.joblib" (
 echo.
 if "%ALL_OK%"=="1" (
     call :SUCCESS "All required prerequisites are satisfied!"
+    exit /b 0
 ) else (
     call :ERROR "Some prerequisites are missing. Fix them before running the pipeline."
+    exit /b 1
 )
-exit /b 0
 
 :: ==============================================================================
 :DO_HEALTH_CHECK

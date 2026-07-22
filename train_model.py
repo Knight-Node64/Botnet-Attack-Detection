@@ -74,12 +74,12 @@ def train():
         if f1 > best_f1:
             best_f1, best_name, best_model = f1, name, clf
 
-    print(f"\nBest → {best_name}  F1={best_f1:.4f}")
+    print(f"\nBest -> {best_name}  F1={best_f1:.4f}")
     os.makedirs("models", exist_ok=True)
     joblib.dump({'model_name': best_name, 'model': best_model,
                  'scaler': scaler, 'encoders': encoders, 'feature_names': feature_names},
                 "models/botnet_detector.joblib")
-    print("Saved → models/botnet_detector.joblib")
+    print("Saved -> models/botnet_detector.joblib")
 
 if __name__ == "__main__":
     train()

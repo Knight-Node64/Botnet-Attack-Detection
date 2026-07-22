@@ -7,16 +7,15 @@ import numpy as np, pandas as pd, joblib
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from contextlib import asynccontextmanager
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger("botnet_api")
-
-app = FastAPI(title="Botnet Detection API", version="1.0")
 
 MODEL_PATH = "models/botnet_detector.joblib"
 pipeline   = None
 stats      = {"total": 0, "attacks": 0, "latency_ms": 0.0}
 
-@app.on_event("startup")
 def load_model():
     global pipeline
     if os.path.exists(MODEL_PATH):
@@ -24,6 +23,27 @@ def load_model():
         log.info("Model loaded: %s", pipeline['model_name'])
     else:
         log.warning("Model not found at %s", MODEL_PATH)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_model()
+    yield
+
+app = FastAPI(
+    lifespan=lifespan,
+    title="Botnet Attack Detection API",
+    description="""
+## Advanced Botnet Detection & MLOps Inference Service
+
+This FastAPI service serves real-time botnet attack detection predictions trained on the **UNSW-NB15 dataset**.
+
+### Core Functionality:
+* **`/health`**: Verifies API service status and confirms whether the machine learning model (`botnet_detector.joblib`) is successfully loaded.
+* **`/predict`**: Accepts raw network traffic flow features, applies feature engineering (ratios, aggregations, log transforms), and returns botnet attack classification with confidence probability.
+* **`/metrics`**: Provides operational health telemetry including total requests processed, detected attack counts, and average inference latency.
+""",
+    version="1.0.0"
+)
 
 # ── Request schema ─────────────────────────────────────────────────────────────
 class Flow(BaseModel):
@@ -67,14 +87,42 @@ def _preprocess(data: dict) -> np.ndarray:
     return pipeline['scaler'].transform(df[pipeline['feature_names']])
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
-@app.get("/health")
+@app.get(
+    "/health",
+    summary="Service & Model Health Status Check",
+    description="""
+Checks API operational status and model readiness.
+
+**Returns:**
+* `status`: `"healthy"` if model is loaded and API is operational, `"unhealthy"` otherwise.
+* `model_loaded`: Boolean flag indicating if the model file is loaded into memory.
+* `model_name`: Name of the active trained classifier (e.g. `RandomForestClassifier` or `XGBClassifier`).
+"""
+)
 def health():
     ok = pipeline is not None
     return {"status": "healthy" if ok else "unhealthy",
             "model_loaded": ok,
             "model_name": pipeline['model_name'] if ok else None}
 
-@app.post("/predict")
+@app.post(
+    "/predict",
+    summary="Predict Network Flow Botnet Attack",
+    description="""
+Performs real-time botnet classification on a network traffic flow payload.
+
+**Preprocessing Pipeline:**
+1. Derives packet/byte totals, packet ratios, TTL differences, and TCP handshake statistics.
+2. Applies `log1p` transformations to skewed traffic features.
+3. Encodes categorical variables (`proto`, `service`, `state`) and scales input using the trained `StandardScaler`.
+
+**Returns:**
+* `prediction`: `1` for Botnet Attack flow, `0` for Normal flow.
+* `label`: String representation (`"Attack"` or `"Normal"`).
+* `attack_probability`: Model confidence score between `0.0` and `1.0`.
+* `latency_ms`: Feature engineering and inference runtime in milliseconds.
+"""
+)
 def predict(flow: Flow):
     if pipeline is None:
         raise HTTPException(503, "Model not loaded")
@@ -89,7 +137,19 @@ def predict(flow: Flow):
     return {"prediction": pred, "label": "Attack" if pred else "Normal",
             "attack_probability": round(prob, 4), "latency_ms": round(ms, 2)}
 
-@app.get("/metrics")
+@app.get(
+    "/metrics",
+    summary="Prometheus & Monitoring Telemetry Metrics",
+    description="""
+Returns operational monitoring metrics aggregated since API server startup.
+
+**Returns:**
+* `total_requests`: Total count of inference requests processed.
+* `attacks_detected`: Count of traffic flows classified as botnet attacks.
+* `normal_flows`: Count of legitimate network traffic flows.
+* `avg_latency_ms`: Rolling average inference latency in milliseconds.
+"""
+)
 def metrics():
     t = stats["total"]
     return {"total_requests": t, "attacks_detected": stats["attacks"],
