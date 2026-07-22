@@ -1,4 +1,4 @@
-# 🛡️ Botnet Attack Detection — MLOps Pipeline
+# Botnet Attack Detection — MLOps Pipeline
 
 > End-to-end machine learning pipeline for detecting botnet attacks in IoT network traffic using the **UNSW-NB15** dataset. Follows a structured M1–M5 MLOps milestone framework.
 
@@ -10,7 +10,7 @@
 
 ---
 
-## 📐 Architecture
+## Architecture
 
 ```
 UNSW-NB15 Dataset
@@ -31,7 +31,7 @@ UNSW-NB15 Dataset
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install
 ```bash
@@ -79,7 +79,7 @@ python smoke_test.py --monitor   # live batch monitoring
 
 ---
 
-## 📊 Model Performance
+## Model Performance
 
 | Model        | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
 |:-------------|:--------:|:---------:|:------:|:--------:|:-------:|
@@ -90,7 +90,7 @@ python smoke_test.py --monitor   # live batch monitoring
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Botnet-Detection/
@@ -115,7 +115,7 @@ Botnet-Detection/
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 ### `GET /health`
 ```json
@@ -140,7 +140,7 @@ Send a network flow object, receive a classification:
 
 ---
 
-## 🏗️ MLOps Milestones
+## MLOps Milestones
 
 | # | Milestone | Files |
 |---|-----------|-------|
@@ -152,7 +152,7 @@ Send a network flow object, receive a classification:
 
 ---
 
-## ⚙️ Feature Engineering (8 new features + 10 log transforms)
+## Feature Engineering (8 new features + 10 log transforms)
 
 | Feature | Description |
 |---------|-------------|
