@@ -7,7 +7,6 @@ import numpy as np, pandas as pd, joblib
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-
 from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
