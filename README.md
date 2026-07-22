@@ -93,24 +93,36 @@ python smoke_test.py --monitor   # live batch monitoring
 ## Project Structure
 
 ```
-Botnet-Detection/
+Botnet-Attack-Detection/
 ├── train_model.py          # M1 – Train & save model
 ├── app.py                  # M2 – FastAPI REST service
+├── predict.py              # CLI prediction script
+├── monitor.py              # Live system monitoring script
 ├── smoke_test.py           # M4/M5 – Smoke test & monitoring
+├── visualize_results.py    # Generates plots and visualizations
 ├── requirements.txt        # Pinned dependencies
 ├── Dockerfile              # Container definition
 ├── docker-compose.yml      # Local orchestration
-├── tests/
-│   └── test_pipeline.py    # M3 – Unit tests (6 tests)
+├── setup.bat               # Interactive setup/run interface
+├── run_pipeline.bat        # Pipeline automation script
+├── banner.txt              # CLI banner art
+├── errors.txt              # Log file for CLI/runtime errors
+├── errors2.txt             # Supplementary error log
+├── tests/                  # M3 – Suite of automated tests
+│   ├── test_api.py         # REST API test cases
+│   ├── test_pipeline.py    # Model pipeline test cases
+│   └── test_preprocessing.py # Preprocessing & feature engineering test cases
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml       # M3 – GitHub Actions CI/CD
 ├── k8s/
 │   ├── deployment.yaml     # M4 – Kubernetes Deployment
 │   └── service.yaml        # M4 – Kubernetes Service
-└── models/
-    └── botnet_detector.joblib   # Saved model (git-ignored)
+├── models/
+│   └── botnet_detector.joblib   # Trained model artifact
+└── presentation_assets/    # Plots, diagrams, and media
 ```
+
 
 ---
 
