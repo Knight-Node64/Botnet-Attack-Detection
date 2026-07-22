@@ -35,7 +35,7 @@ UNSW-NB15 Dataset
 
 ### 1. Install
 ```bash
-git clone https://github.com/Knight-Node/Botnet-Detection.git
+git clone https://github.com/Knight-Node64/Botnet-Detection.git
 cd Botnet-Detection
 pip install -r requirements.txt
 ```
