@@ -568,6 +568,6 @@ exit /b 0
 
 :EXIT
 echo.
-echo   Goodbye!
+echo   Goodbyeee!
 echo.
 exit /b 0
