@@ -64,8 +64,8 @@ def run_monitoring_simulation(api_url="http://127.0.0.1:8000", sample_size=50):
     print(f"Average Request Latency:   {avg_lat:.2f} ms")
     print(f"95th Percentile Latency:   {p95_lat:.2f} ms")
     print(f"Cumulative API Total Requests: {final_metrics['total_requests']}")
-    print(f"Cumulative Attacks Detected:   {final_metrics['attack_predictions']}")
-    print(f"Cumulative Normal Flows:       {final_metrics['normal_predictions']}")
+    print(f"Cumulative Attacks Detected:   {final_metrics['attacks_detected']}")
+    print(f"Cumulative Normal Flows:       {final_metrics['normal_flows']}")
     print("===================================================")
 
 if __name__ == "__main__":

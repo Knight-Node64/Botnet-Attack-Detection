@@ -57,7 +57,7 @@ python train_model.py
 ### 4. Run API (M2)
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000
-# → http://localhost:8000/docs  (Swagger UI)
+# → http://localhost:8000/docs  (ReDoc API Reference)
 ```
 
 ### 5. Test (M3)
