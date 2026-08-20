@@ -1,0 +1,50 @@
+name: Scheduled Retraining
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'   # every Sunday 02:00 UTC
+  workflow_dispatch:       # allow manual trigger
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: pip
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Download UNSW-NB15 dataset
+      env:
+        KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+        KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      run: |
+        pip install kaggle
+        mkdir -p dataset
+        kaggle datasets download -d mrwellsdavid/unsw-nb15 -p dataset --unzip
+
+    - name: Train model
+      run: python train_model.py
+
+    - name: Commit updated model artifact
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add models/botnet_detector.joblib
+        if git diff --cached --quiet; then
+          echo "No model change; skipping commit."
+        else
+          git commit -m "chore(model): scheduled retraining $(date -u +%Y-%m-%d)"
+          git push
+        fi

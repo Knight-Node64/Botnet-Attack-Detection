@@ -1,0 +1,22 @@
+# Git
+.git/
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Dataset (large, not in image)
+dataset/
+
+# Scratch
+process/
+errors.txt
+errors2.txt
+banner.txt
+setup.bat
+run_pipeline.bat
+visualize_results.py
+presentation_assets/

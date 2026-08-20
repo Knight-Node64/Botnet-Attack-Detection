@@ -1,86 +1,75 @@
 import os
+
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_curve,
+)
+
 
 def generate_plots():
     model_path = os.path.join("models", "botnet_detector.joblib")
     test_path = os.path.join("dataset", "UNSW_NB15_testing-set.csv")
-    
+
     if not os.path.exists(model_path):
         print(f"Error: Model not found at {model_path}.")
         return
-        
+
     print("Loading model and dataset...")
-    pipeline = joblib.load(model_path)
-    model = pipeline['model']
-    scaler = pipeline['scaler']
-    encoders = pipeline['encoders']
-    feature_names = pipeline['feature_names']
-    
+    artifact = joblib.load(model_path)
+    model = artifact['model']
+    feature_names = artifact['feature_names']
+    metadata = artifact.get('metadata', {})
+
     test_df = pd.read_csv(test_path)
     y_test = test_df['label']
-    
-    # Preprocess test set to get features matching fitted model
     df_temp = test_df.drop(columns=[c for c in ['id', 'attack_cat', 'label'] if c in test_df.columns])
-    
-    # Feature engineering (must match train_model.py exactly)
-    df_temp['total_bytes'] = df_temp['sbytes'] + df_temp['dbytes']
-    df_temp['total_pkts'] = df_temp['spkts'] + df_temp['dpkts']
-    df_temp['bytes_per_pkt_src'] = df_temp['sbytes'] / (df_temp['spkts'] + 1e-5)
-    df_temp['bytes_per_pkt_dst'] = df_temp['dbytes'] / (df_temp['dpkts'] + 1e-5)
-    df_temp['pkt_ratio'] = df_temp['spkts'] / (df_temp['dpkts'] + 1e-5)
-    df_temp['byte_ratio'] = df_temp['sbytes'] / (df_temp['dbytes'] + 1e-5)
-    df_temp['ttl_diff'] = np.abs(df_temp['sttl'] - df_temp['dttl'])
-    df_temp['tcp_handshake_sum'] = df_temp['synack'] + df_temp['ackdat']
-    
-    skewed_cols = ['dur', 'sbytes', 'dbytes', 'sload', 'dload', 'rate', 'spkts', 'dpkts', 'total_bytes', 'total_pkts']
-    for col in skewed_cols:
-        df_temp[f'log_{col}'] = np.log1p(np.maximum(0, df_temp[col]))
-        
-    for col in ['proto', 'service', 'state']:
-        le = encoders[col]
-        df_temp[col] = df_temp[col].astype(str).map(
-            lambda s: le.transform([s])[0] if s in le.classes_ else le.transform([le.classes_[0]])[0]
-        )
-        
-    X_test = df_temp[feature_names]
-    X_test_scaled = scaler.transform(X_test)
-    
+
     print("Generating predictions...")
-    y_pred = model.predict(X_test_scaled)
-    y_proba = model.predict_proba(X_test_scaled)[:, 1]
-    
+    y_pred = model.predict(df_temp)
+    y_proba = model.predict_proba(df_temp)[:, 1]
+
     # Calculate performance metrics
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred)
     rec = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
-    
+
     print("\n--- Model Performance Metrics ---")
+    print(f"Model:     {metadata.get('model_name', 'unknown')}")
     print(f"Accuracy:  {acc:.4f} ({acc*100:.2f}%)")
     print(f"Precision: {prec:.4f} ({prec*100:.2f}%)")
     print(f"Recall:    {rec:.4f} ({rec*100:.2f}%)")
     print(f"F1-Score:  {f1:.4f} ({f1*100:.2f}%)")
-    
+
     # Create directory for plots
     os.makedirs("presentation_assets", exist_ok=True)
-    
+
     # 1. Confusion Matrix Plot
     print("\nGenerating Confusion Matrix Plot...")
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(7, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Normal', 'Attack'], yticklabels=['Normal', 'Attack'])
-    
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Normal', 'Attack'], yticklabels=['Normal', 'Attack'])
+
     # Overlay the metrics on the confusion matrix plot
-    stats_text = f"Accuracy: {acc*100:.2f}%\nPrecision: {prec*100:.2f}%\nRecall: {rec*100:.2f}%\nF1-Score: {f1*100:.2f}%"
+    stats_text = (
+        f"Accuracy: {acc*100:.2f}%\nPrecision: {prec*100:.2f}%\n"
+        f"Recall: {rec*100:.2f}%\nF1-Score: {f1*100:.2f}%"
+    )
     plt.text(0.5, -0.15, stats_text, ha='center', va='center', transform=plt.gca().transAxes,
              bbox=dict(boxstyle='round,pad=0.5', facecolor='white', edgecolor='gray', alpha=0.9),
              fontsize=10, family='sans-serif')
-             
+
     plt.title('Confusion Matrix - Botnet Detection', fontsize=14, fontweight='bold', pad=15)
     plt.xlabel('Predicted Label', fontsize=12)
     plt.ylabel('True Label', fontsize=12)
@@ -88,7 +77,7 @@ def generate_plots():
     cm_path = os.path.join("presentation_assets", "confusion_matrix.png")
     plt.savefig(cm_path, dpi=300)
     plt.close()
-    
+
     # 2. ROC Curve Plot
     print("Generating ROC Curve Plot...")
     fpr, tpr, _ = roc_curve(y_test, y_proba)
@@ -107,20 +96,21 @@ def generate_plots():
     roc_path = os.path.join("presentation_assets", "roc_curve.png")
     plt.savefig(roc_path, dpi=300)
     plt.close()
-    
+
     # 3. Feature Importance Plot
     print("Generating Feature Importance Plot...")
-    importances = model.feature_importances_
+    clf = model.named_steps['clf']
+    importances = clf.feature_importances_
     indices = np.argsort(importances)[::-1]
     top_n = 15
-    
+
     plt.figure(figsize=(10, 6))
     sns.barplot(
-        x=importances[indices[:top_n]], 
-        y=[feature_names[i] for i in indices[:top_n]], 
+        x=importances[indices[:top_n]],
+        y=[feature_names[i] for i in indices[:top_n]],
         palette="viridis",
         hue=[feature_names[i] for i in indices[:top_n]],
-        legend=False
+        legend=False,
     )
     plt.title(f'Top {top_n} Feature Importances', fontsize=14, fontweight='bold', pad=15)
     plt.xlabel('Relative Importance Value', fontsize=12)
@@ -130,7 +120,7 @@ def generate_plots():
     importance_path = os.path.join("presentation_assets", "feature_importances.png")
     plt.savefig(importance_path, dpi=300)
     plt.close()
-    
+
     print("\nAll presentation assets successfully saved to the 'presentation_assets/' directory:")
     print(f"  - Confusion Matrix: {cm_path}")
     print(f"  - ROC Curve: {roc_path}")

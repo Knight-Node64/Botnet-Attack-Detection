@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from app import app, load_model
 
 client = TestClient(app)
@@ -60,7 +61,7 @@ def test_predict_endpoint():
         "ct_srv_dst": 1,
         "is_sm_ips_ports": 0
     }
-    
+
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   botnet-detector-api:
     build:
@@ -11,8 +9,18 @@ services:
     restart: always
     environment:
       - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M

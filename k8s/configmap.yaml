@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: botnet-detector-config
+data:
+  LOG_LEVEL: "INFO"
+  MODEL_PATH: "models/botnet_detector.joblib"

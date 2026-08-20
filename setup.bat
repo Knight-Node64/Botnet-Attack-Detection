@@ -97,6 +97,7 @@ echo   * API running at:   %API_URL%
 echo   * Health endpoint:  %API_URL%/health
 echo   * Swagger UI:       %API_URL%/docs
 echo   * Metrics:          %API_URL%/metrics
+echo   * Prometheus:       %API_URL%/metrics/prometheus
 echo.
 pause
 goto MAIN_MENU
@@ -149,7 +150,8 @@ if not exist "%PROJECT_DIR%dataset\UNSW_NB15_testing-set.csv" (
 call :SUCCESS "Datasets found"
 
 call :STEP "Running feature engineering + model training..."
-echo   (RandomForest vs XGBoost -- best F1 model saved)
+echo   (RandomForest / XGBoost / LightGBM -- best F1 model saved via tuning)
+echo   (Set SKIP_TUNE=1 to skip RandomizedSearchCV for faster iteration)
 echo.
 python "%PROJECT_DIR%train_model.py"
 if errorlevel 1 (
@@ -201,6 +203,7 @@ echo     API:      %API_URL%
 echo     Docs:     %API_URL%/docs
 echo     Health:   %API_URL%/health
 echo     Metrics:  %API_URL%/metrics
+echo     Prometheus: %API_URL%/metrics/prometheus
 echo.
 
 start /b cmd /c "timeout /t 3 /nobreak >nul & start %API_URL%/docs"
@@ -288,11 +291,20 @@ if errorlevel 1 (
     call :DO_DOCKER_BUILD_RUN
 )
 
+call :STEP "Tagging image for deployment manifest (ghcr.io)..."
+docker tag %DOCKER_IMAGE%:latest ghcr.io/Knight-Node64/Botnet-Attack-Detection:latest
+
 call :STEP "Applying K8s manifests..."
+kubectl apply -f "%PROJECT_DIR%k8s\configmap.yaml"
+if errorlevel 1 (call :ERROR "Failed to apply configmap.yaml!" & pause & goto MAIN_MENU)
 kubectl apply -f "%PROJECT_DIR%k8s\deployment.yaml"
 if errorlevel 1 (call :ERROR "Failed to apply deployment.yaml!" & pause & goto MAIN_MENU)
 kubectl apply -f "%PROJECT_DIR%k8s\service.yaml"
 if errorlevel 1 (call :ERROR "Failed to apply service.yaml!" & pause & goto MAIN_MENU)
+kubectl apply -f "%PROJECT_DIR%k8s\hpa.yaml"
+if errorlevel 1 (call :WARN "Failed to apply hpa.yaml -- skipping (optional)")
+kubectl apply -f "%PROJECT_DIR%k8s\ingress.yaml"
+if errorlevel 1 (call :WARN "Failed to apply ingress.yaml -- skipping (optional)")
 
 call :STEP "Waiting for pods to be ready (up to 60s)..."
 kubectl rollout status deployment/botnet-detector-deployment --timeout=60s
@@ -307,7 +319,7 @@ kubectl get svc 2>nul
 echo.
 
 call :STEP "Setting up port-forward for local access..."
-start "K8s Port-Forward" cmd /k "kubectl port-forward service/botnet-detector-service %API_PORT%:80 & pause"
+start "K8s Port-Forward" cmd /k "kubectl port-forward service/botnet-detector-service %API_PORT%:8000 & pause"
 timeout /t 3 /nobreak >nul
 call :DO_HEALTH_CHECK
 
@@ -389,7 +401,9 @@ timeout /t 1 /nobreak >nul
 start %API_URL%/health
 timeout /t 1 /nobreak >nul
 start %API_URL%/metrics
-call :SUCCESS "Opened: /docs  /health  /metrics"
+timeout /t 1 /nobreak >nul
+start %API_URL%/metrics/prometheus
+call :SUCCESS "Opened: /docs  /health  /metrics  /metrics/prometheus"
 pause
 goto MAIN_MENU
 
@@ -417,11 +431,12 @@ if not errorlevel 1 (
 
 echo.
 echo   CI/CD Pipeline Stages (on push to main):
-echo     1. Setup Python 3.11
-echo     2. pip install -r requirements.txt
-echo     3. pytest -v tests/          (all must pass)
-echo     4. docker build              (image created)
-echo     5. docker run + /health      (container verified)
+echo     1. Setup Python 3.11 + 3.13  (matrix)
+echo     2. pip install -r requirements.txt  (cached)
+echo     3. ruff check .              (lint)
+echo     4. pytest --cov              (tests + coverage)
+echo     5. docker buildx + push to GHCR
+echo     6. docker run + /health      (container verified)
 echo.
 pause
 goto MAIN_MENU

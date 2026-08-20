@@ -4,7 +4,9 @@ Usage:
   python smoke_test.py               # smoke test (needs API running)
   python smoke_test.py --monitor     # live monitoring batch
 """
-import sys, time
+import sys
+import time
+
 import numpy as np
 import requests
 
@@ -68,7 +70,8 @@ def monitor(n=50):
         t0 = time.time()
         resp = requests.post(f"{BASE}/predict", json=payload).json()
         lats.append((time.time()-t0)*1000)
-        if resp['prediction'] == int(row['label']): correct += 1
+        if resp['prediction'] == int(row['label']):
+            correct += 1
     m = requests.get(f"{BASE}/metrics").json()
     print(f"\n{'='*48}")
     print(f"Batch size : {n}")

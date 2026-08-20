@@ -3,8 +3,8 @@
 > End-to-end machine learning pipeline for detecting botnet attacks in IoT network traffic using the **UNSW-NB15** dataset. Follows a structured M1–M5 MLOps Milestone framework.
 
 [![CI/CD](https://github.com/Knight-Node64/Botnet-Attack-Detection/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Knight-Node64/Botnet-Attack-Detection/actions)
-![Python](https://img.shields.io/badge/python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green)
+![Python](https://img.shields.io/badge/python-3.13-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.135+-green)
 
 ![Setup Interface](presentation_assets/setup_bat_interface.png)
 
@@ -51,7 +51,8 @@ dataset/
 ### 3. Train Model (M1)
 ```bash
 python train_model.py
-# → saves models/botnet_detector.joblib
+# → saves models/botnet_detector.joblib  (unified Pipeline + metadata)
+# → set SKIP_TUNE=1 to skip RandomizedSearchCV for faster iteration
 ```
 
 ### 4. Run API (M2)
@@ -83,10 +84,11 @@ python smoke_test.py --monitor   # live batch monitoring
 
 | Model        | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
 |:-------------|:--------:|:---------:|:------:|:--------:|:-------:|
-| RandomForest | 88.6%    | 99.0%     | 83.4%  | **90.6%** | 98.8%  |
-| XGBoost      | 88.4%    | 98.6%     | 83.6%  | 90.5%    | 98.4%   |
+| RandomForest | 90.3%    | 98.9%     | 86.8%  | **92.4%** | 98.7%  |
+| XGBoost      | 90.1%    | 98.8%     | 86.4%  | 92.2%    | 98.6%   |
+| LightGBM     | 90.0%    | 98.8%     | 86.3%  | 92.1%    | 98.6%   |
 
-**Best model saved automatically** by F1-score.
+**Best model saved automatically** by F1-score (unified sklearn Pipeline + training metadata).
 
 ---
 
@@ -94,32 +96,38 @@ python smoke_test.py --monitor   # live batch monitoring
 
 ```
 Botnet-Attack-Detection/
-├── train_model.py          # M1 – Train & save model
+├── train_model.py          # M1 – Train, tune & save unified sklearn Pipeline
+├── preprocessing.py        # Shared feature engineering & encoding (train/serve parity)
 ├── app.py                  # M2 – FastAPI REST service
 ├── predict.py              # CLI prediction script
 ├── monitor.py              # Live system monitoring script
 ├── smoke_test.py           # M4/M5 – Smoke test & monitoring
 ├── visualize_results.py    # Generates plots and visualizations
 ├── requirements.txt        # Pinned dependencies
-├── Dockerfile              # Container definition
+├── pyproject.toml          # Project metadata & tool config (ruff, pytest, coverage)
+├── Dockerfile              # Multi-stage container build (non-root)
+├── .dockerignore           # Build context exclusions
 ├── docker-compose.yml      # Local orchestration
 ├── setup.bat               # Interactive setup/run interface
 ├── run_pipeline.bat        # Pipeline automation script
 ├── banner.txt              # CLI banner art
-├── errors.txt              # Log file for CLI/runtime errors
-├── errors2.txt             # Supplementary error log
 ├── tests/                  # M3 – Suite of automated tests
 │   ├── test_api.py         # REST API test cases
 │   ├── test_pipeline.py    # Model pipeline test cases
-│   └── test_preprocessing.py # Preprocessing & feature engineering test cases
+│   ├── test_preprocessing.py # Preprocessing & feature engineering test cases
+│   └── test_hardening.py   # Validation, error handling & Prometheus metrics
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml       # M3 – GitHub Actions CI/CD
+│       ├── ci-cd.yml       # M3 – GitHub Actions CI/CD (lint, test, build, GHCR)
+│       └── retrain.yml     # Scheduled weekly model retraining
 ├── k8s/
-│   ├── deployment.yaml     # M4 – Kubernetes Deployment
-│   └── service.yaml        # M4 – Kubernetes Service
+│   ├── deployment.yaml     # M4 – Kubernetes Deployment (resources + probes)
+│   ├── service.yaml        # M4 – Kubernetes Service
+│   ├── hpa.yaml            # M4 – Horizontal Pod Autoscaler
+│   ├── configmap.yaml      # Runtime configuration
+│   └── ingress.yaml        # External routing
 ├── models/
-│   └── botnet_detector.joblib   # Trained model artifact
+│   └── botnet_detector.joblib   # Trained sklearn Pipeline artifact
 └── presentation_assets/    # Plots, diagrams, and media
 ```
 
@@ -148,6 +156,9 @@ Send a network flow object, receive a classification:
 ```json
 {"total_requests": 42, "attacks_detected": 10, "normal_flows": 32, "avg_latency_ms": 2.3}
 ```
+
+### `GET /metrics/prometheus`
+Prometheus text-format metrics (`http_requests_total`, `http_request_duration_seconds`, ...) scraped by monitoring stacks.
 
 ---
 

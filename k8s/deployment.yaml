@@ -16,10 +16,20 @@ spec:
     spec:
       containers:
       - name: botnet-detector
-        image: botnet-detector:latest
+        image: ghcr.io/Knight-Node64/Botnet-Attack-Detection:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: botnet-detector-config
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 2Gi
         livenessProbe:
           httpGet:
             path: /health
