@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -62,6 +59,9 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set lowercase image name
+      run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
     - name: Build and push image
       uses: docker/build-push-action@v6

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: botnet-detector
-        image: ghcr.io/Knight-Node64/Botnet-Attack-Detection:latest
+        image: ghcr.io/knight-node64/botnet-attack-detection:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000

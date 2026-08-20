@@ -292,7 +292,7 @@ if errorlevel 1 (
 )
 
 call :STEP "Tagging image for deployment manifest (ghcr.io)..."
-docker tag %DOCKER_IMAGE%:latest ghcr.io/Knight-Node64/Botnet-Attack-Detection:latest
+docker tag %DOCKER_IMAGE%:latest ghcr.io/knight-node64/botnet-attack-detection:latest
 
 call :STEP "Applying K8s manifests..."
 kubectl apply -f "%PROJECT_DIR%k8s\configmap.yaml"
